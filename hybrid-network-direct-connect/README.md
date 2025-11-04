@@ -1,6 +1,6 @@
 # Case Study: Hybrid Network Architecture with AWS Direct Connect
 
-![Hybrid Network Diagram](/docs/Hybrid_Network_Diagram.drawio.svg)
+![Hybrid Network Diagram](docs/Hybrid_Network_Diagram.drawio.svg)
 
 This diagram illustrates a hybrid network architecture that connects an on-premises corporate data center to AWS using two distinct AWS Direct Connect connections for secure, highly-available, high-bandwidth, low-latency connectivity.
 
