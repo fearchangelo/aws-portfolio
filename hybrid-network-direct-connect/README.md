@@ -2,7 +2,7 @@
 
 ![Hybrid Network Diagram](docs/Hybrid_Network_Diagram.drawio.svg)
 
-This diagram illustrates a hybrid network architecture that connects an on-premises corporate data center to AWS using two distinct AWS Direct Connect connections for secure, highly-available, high-bandwidth, low-latency connectivity.
+This diagram illustrates a hybrid network architecture that connects an on-premises corporate data center to AWS using two distinct AWS Direct Connect connections for secure, highly available, high-bandwidth, low-latency connectivity.
 
 ## Business Requirements
 - Allow safe connectivity between on-premises data center and AWS environment
@@ -11,57 +11,23 @@ This diagram illustrates a hybrid network architecture that connects an on-premi
 - A single VPC requires a high-throughput, dedicated VPC link
 - Phyisical fiber path redundancy
 
-## Architecture Overview
-
-The architecture demonstrates a redundant, highly available connection between on-premises infrastructure and AWS cloud resources using multiple Direct Connect connections and gateways.
-
-### Key Components
-
-#### On-Premises Infrastructure
-- **Corporate Data Center**: The on-premises environment containing business-critical applications and data
-- **Customer Gateway**: A router that serves as the connection point between the corporate network and AWS Direct Connect
-
-#### AWS Direct Connect Infrastructure
-- **AWS Direct Connect Connection #1**: Primary dedicated network connection
-- **AWS Direct Connect Connection #2**: Secondary connection for redundancy
-- **Transit VIF #1 & #2**: Transit Virtual Interfaces that enable connectivity to multiple VPCs through Transit Gateway
-- **Private VIF #1 & #2**: Private Virtual Interfaces for direct VPC connectivity
-
-#### AWS Gateway Infrastructure
-- **DX Gateway (Transit)**: Direct Connect Gateway configured for Transit Gateway integration
-- **DX Gateway (Private)**: Direct Connect Gateway for private VPC connectivity
-- **Transit Gateway**: Central hub for connecting multiple VPCs and on-premises networks
-
-#### AWS Cloud Resources
-- **Region**: AWS region containing the cloud infrastructure
-- **Multiple VPCs**: Virtual Private Clouds hosting various applications and services
-- **Virtual Private Gateway**: Enables VPC connectivity to on-premises networks
-
-## Network Flow and Connectivity
-
-### Primary Data Path
-1. Traffic originates from the corporate data center
-2. Passes through the Customer Gateway
-3. Travels over AWS Direct Connect connections
-4. Routes through appropriate Virtual Interfaces (VIFs)
-5. Reaches AWS resources via Direct Connect Gateways and Transit Gateway
-
-### Redundancy and High Availability
-- **Dual Direct Connect Connections**: Provides redundancy at the physical connection level
-- **Multiple VIFs**: Separate Virtual Interfaces ensure traffic isolation and redundancy
-- **Multiple Gateways**: Both Transit and Private Direct Connect Gateways offer different connectivity patterns
+## Solution Overview
+- Two AWS Direct Connect connections are established through distinct service providers. An on-premises BGP router is connected to each provider by 10-Gbps physical fiber paths, cross-connected to Direct Connect locations (see https://aws.amazon.com/directconnect/locations/).
+- VPCs are connected to a Transit Gateway. Whenever a new VPC is created, connectivity is established by attaching it to the TGW.
+- The Transit Direct Connect Gateway allows traffic to flow from on-premises to the TGW.
+- The high-throughput VPC is connected directly through a Private Direct Connect Gateway, bypassing the TGW for performance-sensitive workloads.
+- The architecture demonstrates a redundant, highly available connection between on-premises infrastructure and AWS cloud resources using multiple Direct Connect connections and gateways.
 
 ## Benefits of This Architecture
 
 ### Performance
 - **Dedicated Bandwidth**: Direct Connect provides consistent, predictable network performance
 - **Low Latency**: Private connection reduces latency compared to internet-based connections
-- **High Throughput**: Supports bandwidth requirements from 50 Mbps to 100 Gbps
+- **High Throughput**: Supports bandwidth requirements up to 100G
+- **Dedicated VPC throughput**: Virtual Private Gateway provides a direct VPC connection from Direct Connect
 
 ### Reliability
 - **Redundant Connections**: Multiple Direct Connect links eliminate single points of failure
-- **Multiple VIFs**: Traffic can be distributed across different virtual interfaces
-- **Gateway Redundancy**: Both Transit and Private gateways provide failover capabilities
 
 ### Security
 - **Private Connectivity**: Traffic doesn't traverse the public internet
@@ -71,7 +37,6 @@ The architecture demonstrates a redundant, highly available connection between o
 ### Scalability
 - **Transit Gateway Integration**: Easily connect additional VPCs without complex routing
 - **Multiple VPC Support**: Single connection can serve multiple AWS environments
-- **Flexible Bandwidth**: Adjust connection speeds based on requirements
 
 ## Use Cases
 
@@ -88,11 +53,10 @@ This architecture is ideal for:
 - Ensure adequate bandwidth provisioning for peak traffic
 - Plan IP address spaces to avoid conflicts between on-premises and AWS networks
 - Design routing policies for optimal traffic flow
+- Direct Connect is *pricy*. Depending on the organization's requirements, having a single Direct Connect circuit and a Site-to-Site VPN (over the internet) as failover is enough.
 
 ### Redundancy Strategy
 - Implement connections in different Direct Connect locations for maximum availability
-- Configure appropriate failover mechanisms
-- Test failover scenarios regularly
 
 ### Security
 - Implement appropriate access controls and network segmentation
