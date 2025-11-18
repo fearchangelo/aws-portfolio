@@ -1,8 +1,6 @@
 from typing import List
 from strands import tool
-from models.travel_session import TravelSession
-
-session = TravelSession()
+from tools.suggest_travel_destination import session
 
 @tool
 def pick_travel_destination(agent_name: str, destinations: List[str], chosen_destination: str, reason: str) -> str:

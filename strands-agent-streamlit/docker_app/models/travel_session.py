@@ -16,9 +16,12 @@ class TravelSession:
     def get_all_destinations(self) -> List[str]:
         return [info['suggested_travel_location'] for info in self.data.values()]
     
+    def get_all_suggestions(self) -> List[str]:
+        return [info['suggested_travel_location'] for info in self.data.values() if 'suggested_travel_location' in info]
+    
     def get_other_destinations(self, agent_name: str) -> List[str]:
         return [info['suggested_travel_location'] for name, info in self.data.items() if name != agent_name]
     
     def get_most_chosen(self) -> str:
-        choices = [info["suggested_travel_location"] for info in self.data.values() if "suggested_travel_location" in info]
+        choices = [info["chosen_destination"] for info in self.data.values() if "chosen_destination" in info]
         return Counter(choices).most_common(1)[0][0] if choices else None

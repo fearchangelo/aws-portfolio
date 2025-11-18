@@ -2,68 +2,43 @@ import streamlit as st
 import json
 import boto3
 
+from agents.agent_config import system_prompt
 from strands import Agent
 from strands.models import BedrockModel
 from tools.suggest_travel_destination import suggest_travel_destination, session as suggest_session
 from tools.pick_travel_destination import pick_travel_destination, session as pick_session
 
+from time import sleep
+
 # Use the same session instance
 session = suggest_session
-from agents.agent_config import system_prompt
 
-def get_flag_emoji(city):
-    """Get flag emoji for a city using known mappings or LLM"""
-    city_flags = {
-        "vancouver": "🇨🇦", "toronto": "🇨🇦", "montreal": "🇨🇦",
-        "berlin": "🇩🇪", "munich": "🇩🇪", "hamburg": "🇩🇪",
-        "sao paulo": "🇧🇷", "rio de janeiro": "🇧🇷", "brasilia": "🇧🇷",
-        "new york": "🇺🇸", "los angeles": "🇺🇸", "chicago": "🇺🇸",
-        "london": "🇬🇧", "manchester": "🇬🇧", "birmingham": "🇬🇧",
-        "paris": "🇫🇷", "lyon": "🇫🇷", "marseille": "🇫🇷",
-        "tokyo": "🇯🇵", "osaka": "🇯🇵", "kyoto": "🇯🇵"
-    }
-    
-    flag = city_flags.get(city.lower())
-    if flag:
-        return flag
-    
-    # Use LLM for unknown cities
-    try:
-        bedrock = boto3.client('bedrock-runtime')
-        prompt = f"What is the flag emoji for the country where {city} is located? Return only the flag emoji, no text."
-        body = json.dumps({
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 5,
-            "messages": [{"role": "user", "content": prompt}]
-        })
-        response = bedrock.invoke_model(
-            modelId="anthropic.claude-3-5-haiku-20241022-v1:0",
-            body=body
-        )
-        response_body = json.loads(response['body'].read())
-        return response_body['content'][0]['text'].strip() or "🏳️"
-    except:
-        return "🏳️"
-
-# Initialize session state for conversation history
+# Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "output" not in st.session_state:
-    st.session_state.output = []
-if "details_placeholder" not in st.session_state:
-    st.session_state.details_placeholder = None
 
-st.title("Travel Destination Picker powered by Agentic AI")
+st.title("Travel Destination Picker")
 st.write("This app helps a group decide on a travel destination using Agentic AI.")
+st.write("Use the sidebar to add or remove participants with their city and personality.")
+st.write("You can also configure the LLM powering the decision-making process.")
 
 if ("participants" not in st.session_state):
     st.session_state.participants = [
-    {"name": "Phillip", "city": "Vancouver", "personality": "enjoys hikes, beach, dogs"},
-    {"name": "Bruno", "city": "Berlin", "personality": "enjoys bbq, beer, sports"},
-    {"name": "Rafael", "city": "Sao Paulo", "personality": "enjoys sports, running"}]
+    {"name": "Julian", "city": "Portland", "personality": "likes edm music, nightlife, cocktails"},
+    {"name": "Kevin", "city": "San Francisco", "personality": "tech junkie, likes taking photographs, craft beer"},
+    {"name": "Josh", "city": "Vancouver", "personality": "likes dogs, hiking, beach, coffee, doesnt drink alcohol"}]
 
 # Sidebar for participant management
 with st.sidebar:
+    st.header("Configuration")
+    
+    # Model selection
+    selected_model = st.selectbox(
+        "LLM",
+        ["anthropic.claude-3-5-haiku-20241022-v1:0", "us.amazon.nova-lite-v1:0"],
+        index=0
+    )
+    
     st.header("Participants")
     
     # Add new participant
@@ -89,17 +64,60 @@ with st.sidebar:
                 st.session_state.participants.pop(i)
                 st.rerun()
 
-# Display chat history
-if not st.session_state.messages:
-    st.markdown("### How it works:")
-    st.markdown("PHASE 1. **Participants** suggest travel destinations based on their city and personality")
-    st.markdown("PHASE 2. **Participants** pick a travel destination from all other proposals")
-    st.markdown("FINAL RESULT: The most popular travel destination is selected")
-    st.markdown("\n*Try asking: 'Where should we travel for a week at the beach?'*")
+# Participant group buttons
+st.markdown("### Participant Groups:")
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if st.button("Phil 🇨🇦, Bruno 🇩🇪, Renny 🇧🇷", use_container_width=True):
+        st.session_state.participants = [
+            {"name": "Phil", "city": "Vancouver", "personality": "enjoys hikes, beach, dogs"},
+            {"name": "Bruno", "city": "Berlin", "personality": "enjoys bbq, beer, sports"},
+            {"name": "Renny", "city": "Sao Paulo", "personality": "enjoys beer, formula one, workaholic"}
+        ]
+        st.rerun()
+
+with col2:
+    if st.button("Jess 🇨🇦, Natalie 🇬🇧, Trish 🇺🇸", use_container_width=True):
+        st.session_state.participants = [
+            {"name": "Jess", "city": "Vancouver", "personality": "enjoys dogs, beach, shopping"},
+            {"name": "Natalie", "city": "London", "personality": "enjoys books, coffee, history"},
+            {"name": "Trish", "city": "Washington DC", "personality": "enjoys skiing, mountain"}
+        ]
+        st.rerun()
+
+with col3:
+    if st.button("Julian 🇺🇸, Kevin 🇺🇸, Josh 🇨🇦", use_container_width=True):
+        st.session_state.participants = [
+            {"name": "Julian", "city": "Portland", "personality": "likes edm music, nightlife, cocktails"},
+            {"name": "Kevin", "city": "San Francisco", "personality": "tech junkie, likes taking photographs, craft beer"},
+            {"name": "Josh", "city": "Vancouver", "personality": "likes dogs, hiking, beach, coffee, doesnt drink alcohol"}
+        ]
+        st.rerun()
+
+# Quick prompt buttons
+st.markdown("### Quick Travel Ideas:")
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    if st.button("🏖️ Beach Retreat", use_container_width=True):
+        st.session_state.selected_prompt = "Where should we travel for a week at the beach?"
+
+with col2:
+    if st.button("❄️ Winter Village", use_container_width=True):
+        st.session_state.selected_prompt = "Where should we travel for a weekend in a cozy winter village?"
+
+with col3:
+    if st.button("👨‍👩‍👧‍👦 Family Trip", use_container_width=True):
+        st.session_state.selected_prompt = "Where should we travel for vacation with kids?"
+
+with col4:
+    if st.button("🛍️ Luxury Shopping", use_container_width=True):
+        st.session_state.selected_prompt = "Where should we travel for luxury shopping?"
 
 # Define LLM
 model = BedrockModel(
-    model_id="anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id=selected_model,
     max_tokens=8192,
 )
 
@@ -115,18 +133,28 @@ for participant in st.session_state.participants:
     )
     agents.append(agent)
 
-# Keep track of the number of previous messages in the agent flow
-if "start_index" not in st.session_state:
-    st.session_state.start_index = 0
+# State to track process completion
+if "process_completed" not in st.session_state:
+    st.session_state.process_completed = False
 
-# Display chat messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.empty()  # This forces the container to render without adding visible content (workaround for streamlit bug)
-        st.markdown(message["content"])
+# Handle selected prompt from buttons
+if "selected_prompt" in st.session_state:
+    prompt = st.session_state.selected_prompt
+    del st.session_state.selected_prompt
+else:
+    prompt = None
 
-# Chat input
-if prompt := st.chat_input("Ask your agent..."):
+# Reset button (always visible)
+if st.button("Reset", use_container_width=True):
+    st.session_state.messages = []
+    st.session_state.process_completed = False
+    st.rerun()
+
+# Handle prompt
+if prompt and not st.session_state.process_completed:
+    #
+    st.session_state.messages = []
+    
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
     
@@ -145,12 +173,13 @@ if prompt := st.chat_input("Ask your agent..."):
             st.write("**Travel Proposals:**\n\n")
             
             for agent in agents:
-                agent(prompt)
+                already_suggested = session.get_all_suggestions()
+                agent(f"{prompt} Use the suggest_travel_destination tool with already_suggested: {already_suggested}")
 
                 destination = session.data[agent.name]['suggested_travel_location']
                 reasoning = session.data[agent.name].get('suggestion_reasoning', '')
                 proposals_text = f"• {agent.name} proposed {destination} arguing '{reasoning}'.  \n"
-            
+
                 st.write(proposals_text)
                 st.session_state.messages.append({"role": "assistant", "content": proposals_text})
 
@@ -161,13 +190,14 @@ if prompt := st.chat_input("Ask your agent..."):
                 other_destinations = session.get_other_destinations(agent.name)
                 agent(f"Pick your preferred destination from these options: {other_destinations}. Use the pick_travel_destination tool.")
 
-                print(f"DEBUG: Agent {agent.name} session data: {session.data[agent.name]}")
-
-                chosen = session.data[agent.name]['suggested_travel_location']
-                reason = session.data[agent.name]['suggestion_reasoning']
+                if 'chosen_destination' in session.data[agent.name] and 'reason' in session.data[agent.name]:
+                    chosen = session.data[agent.name]['chosen_destination']
+                    reason = session.data[agent.name]['reason']
+                else:
+                    continue
 
                 choices_text = f"• {agent.name} picked {chosen}, arguing '{reason}'.  \n"
-            
+
                 st.write(choices_text)
                 st.session_state.messages.append({"role": "assistant", "content": choices_text})
 
@@ -176,7 +206,8 @@ if prompt := st.chat_input("Ask your agent..."):
         
             most_common = session.get_most_chosen()
             if most_common:
-                result_text = f"{most_common} is the most popular choice!"
+                result_text = f"🌍✨🎉 {most_common} has been chosen as the travel destination for the group! 🎉✨🌍"
                 st.write(result_text)
                 st.session_state.messages.append({"role": "assistant", "content": result_text})
+
 
