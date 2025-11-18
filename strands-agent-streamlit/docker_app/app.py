@@ -18,6 +18,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 st.title("Travel Destination Picker")
+st.markdown("**Developed by Felipe Archangelo** | [💻 GitHub](https://github.com/fearchangelo) | [:briefcase: LinkedIn](https://linkedin.com/in/farchangelo)")
 st.write("This app helps a group decide on a travel destination using Agentic AI.")
 st.write("Use the sidebar to add or remove participants with their city and personality.")
 st.write("You can also configure the LLM powering the decision-making process.")
