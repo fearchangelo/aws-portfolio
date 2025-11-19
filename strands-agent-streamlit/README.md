@@ -1,4 +1,4 @@
-# Agentic AI Travel Picker
+# Travel Picker
 
 🚀 **[View Live Demo](https://d2i9r4rwutpa0d.cloudfront.net)**
 
