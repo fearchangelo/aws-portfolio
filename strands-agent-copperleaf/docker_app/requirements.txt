@@ -1,0 +1,3 @@
+streamlit==1.45.1
+boto3==1.38.18
+strands-agents>=1.15.0
