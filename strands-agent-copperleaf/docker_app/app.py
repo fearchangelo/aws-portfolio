@@ -22,7 +22,7 @@ st.markdown("**Developed by Felipe Archangelo** | [💻 GitHub](https://github.c
 st.write("A Capital Planning AI Agentic System leveraging Amazon Bedrock LLMs and Guardrails to assist users in making informed capital planning decisions.")
 st.write("Suggested questions:")
 st.write("What assets are in portfolio p1?")
-st.write("Perform a risk assessment on portfolio p1?")
+st.write("Perform a risk assessment on portfolio p1.")
 st.write("Optimize portfolio p1.")
 
 # ============================================================================
@@ -82,7 +82,7 @@ else:
 # ============================================================================
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.write(message["content"])
+        st.text(message["content"])
 
 # ============================================================================
 # CHAT INPUT & RESPONSE
@@ -98,7 +98,7 @@ if user_input := st.chat_input("Ask me anything..."):
         with st.spinner("Thinking..."):
             agent_response = agent(user_input)
             response = str(agent_response)
-            st.write(response)
+            st.text(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
     
     st.rerun()
